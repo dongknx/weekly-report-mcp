@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "weekly-report": {
+      "command": "D:\\python\\python.exe",
+      "args": ["D:\\train\\day3\\mcp_test\\weekly_report_server.py"],
+      "env": {
+        "SCHEDULE_XLSX": "C:\\Users\\20224\\Desktop\\202608_sec_gumi\\mx-agentic-ai-day1-prd\\sample-data\\일정_샘플.xlsx",
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "1"
+      }
+    }
+  }
+}

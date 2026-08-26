@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 생성된 보고서 산출물 (Phase 4)
+reports/
+*.report.md
+
+# 원본 일정 엑셀은 저장소에 넣지 않는다 (사내 데이터)
+*.xlsx
+!sample-data/*.template.xlsx
