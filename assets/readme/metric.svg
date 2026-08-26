@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 490" width="1200" height="490" role="img" aria-labelledby="metricTitle metricDesc">
+  <title id="metricTitle">완료율 지표 정의에 따라 3주간 추세가 반대로 읽힌다</title>
+  <desc id="metricDesc">전체 건수 기준 완료율은 45.5퍼센트, 41.7퍼센트, 50.0퍼센트로 추세가 불명확하다. 금주 마감 업무만 분모로 삼은 완료율은 83.3퍼센트, 71.4퍼센트, 66.7퍼센트로 3주 연속 하락한다. 같은 데이터에서 나온 서로 다른 결론이다.</desc>
+
+  <style>
+    .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace; }
+  </style>
+
+  <rect width="1200" height="490" fill="#FAF9F7"/>
+  <rect x="0.5" y="0.5" width="1199" height="489" fill="none" stroke="#E3E0DA"/>
+
+  <text class="sans" x="80" y="74" font-size="40" font-weight="700" fill="#111111">같은 데이터, 다른 결론</text>
+  <text class="mono" x="80" y="108" font-size="20" fill="#6E6E6E">완료율 지표 정의에 따른 3주간 추세 · W31 → W33</text>
+
+  <line x1="600" y1="146" x2="600" y2="440" stroke="#E3E0DA"/>
+
+  <!-- 좌: 전체 건수 기준 -->
+  <text class="sans" x="80" y="182" font-size="26" font-weight="600" fill="#6E6E6E">전체 건수 기준</text>
+  <text class="sans" x="80" y="210" font-size="18" fill="#8A8A8A">마감 전 업무까지 미완료로 집계 · 추세 불명확</text>
+
+  <g>
+    <rect x="150" y="318" width="90" height="82" fill="#D6D3CE"/>
+    <text class="mono" x="195" y="304" font-size="26" font-weight="700" text-anchor="middle" fill="#6E6E6E">45.5</text>
+    <text class="mono" x="195" y="428" font-size="20" text-anchor="middle" fill="#6E6E6E">W31</text>
+
+    <rect x="285" y="325" width="90" height="75" fill="#D6D3CE"/>
+    <text class="mono" x="330" y="311" font-size="26" font-weight="700" text-anchor="middle" fill="#6E6E6E">41.7</text>
+    <text class="mono" x="330" y="428" font-size="20" text-anchor="middle" fill="#6E6E6E">W32</text>
+
+    <rect x="420" y="310" width="90" height="90" fill="#D6D3CE"/>
+    <text class="mono" x="465" y="296" font-size="26" font-weight="700" text-anchor="middle" fill="#6E6E6E">50.0</text>
+    <text class="mono" x="465" y="428" font-size="20" text-anchor="middle" fill="#6E6E6E">W33</text>
+
+    <line x1="150" y1="400" x2="510" y2="400" stroke="#C9C5BE" stroke-width="2"/>
+  </g>
+
+  <!-- 우: 주내 마감 기준 -->
+  <text class="sans" x="620" y="182" font-size="26" font-weight="600" fill="#111111">금주 마감 업무 기준</text>
+  <text class="sans" x="620" y="210" font-size="18" fill="#3A3A3A">마감일이 차주 이후인 업무는 분모에서 제외 · 3주 연속 하락</text>
+
+  <g>
+    <rect x="690" y="250" width="90" height="150" fill="#111111"/>
+    <text class="mono" x="735" y="236" font-size="26" font-weight="700" text-anchor="middle" fill="#111111">83.3</text>
+    <text class="mono" x="735" y="428" font-size="20" text-anchor="middle" fill="#111111">W31</text>
+
+    <rect x="825" y="271" width="90" height="129" fill="#111111"/>
+    <text class="mono" x="870" y="257" font-size="26" font-weight="700" text-anchor="middle" fill="#111111">71.4</text>
+    <text class="mono" x="870" y="428" font-size="20" text-anchor="middle" fill="#111111">W32</text>
+
+    <rect x="960" y="280" width="90" height="120" fill="#111111"/>
+    <text class="mono" x="1005" y="266" font-size="26" font-weight="700" text-anchor="middle" fill="#111111">66.7</text>
+    <text class="mono" x="1005" y="428" font-size="20" text-anchor="middle" fill="#111111">W33</text>
+
+    <line x1="690" y1="400" x2="1050" y2="400" stroke="#111111" stroke-width="2"/>
+
+    <!-- 하락 추세선: 막대 안쪽에 그려 라벨과 겹치지 않게 한다 -->
+    <path d="M735 272 L870 293 L1005 302" fill="none" stroke="#FAF9F7" stroke-width="3"/>
+    <circle cx="735" cy="272" r="6" fill="#FAF9F7"/>
+    <circle cx="870" cy="293" r="6" fill="#FAF9F7"/>
+    <circle cx="1005" cy="302" r="6" fill="#FAF9F7"/>
+  </g>
+
+  <text class="sans" x="80" y="466" font-size="20" fill="#3A3A3A">보고서는 오른쪽 지표를 쓴다. 마감일이 아직 오지 않은 업무를 미완료로 세면 완료율이 부당하게 낮아진다.</text>
+</svg>
