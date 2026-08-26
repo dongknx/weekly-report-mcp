@@ -23,6 +23,7 @@ Claude Code / Codex CLI 양쪽에 연결해서 쓴다.
 | `weekly_report_server.py` | MCP 서버 — 위 모듈을 툴로 노출하는 얇은 래퍼 |
 | `test_client.py` | stdio 프로토콜 레벨 서버 검증 |
 | `verify_config.py` | 클라이언트 설정 파일(.mcp.json / config.toml) 검증 |
+| `verify_all.py` | 통합 회귀 검증 (47개 항목) |
 | `.claude/commands/weekly-report.md` | Claude Code 슬래시 커맨드 (보고서 골격 고정) |
 | `codex-prompts/weekly-report.md` | Codex 커스텀 프롬프트 (같은 내용, frontmatter 없음) |
 | `PROJECT_PLAN.md` | 진행 계획 및 검증 기록 |
@@ -80,6 +81,7 @@ python report_builder.py --all
 python report_builder.py W31 --stdout
 
 # 검증
+python verify_all.py       # 통합 회귀 검증 (47개 항목) - 이것만 돌리면 됨
 python test_client.py      # 서버 (stdio 프로토콜)
 python verify_config.py    # 클라이언트 설정 파일
 ```
@@ -160,7 +162,7 @@ cp codex-prompts/weekly-report.md ~/.codex/prompts/
 - [x] Phase 3 — 클라이언트 연결
 - [x] Phase 4 — 리포트 파일 생성 (Markdown)
 - [x] Phase 5 — 보고서 골격 프롬프트 고정
-- [ ] Phase 6 — 최종 교차 검증
+- [x] Phase 6 — 통합 회귀 검증 (47/47)
 
 상세 계획과 검증 기록은 `PROJECT_PLAN.md` 참고.
 
