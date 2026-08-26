@@ -19,6 +19,7 @@ Claude Code / Codex CLI 양쪽에 연결해서 쓴다.
 | 파일 | 역할 |
 |---|---|
 | `schedule_reader.py` | 엑셀 리더 / 상태 정규화 / 집계 (순수 Python, MCP 무관) |
+| `report_builder.py` | 주간보고서 Markdown 렌더러 |
 | `weekly_report_server.py` | MCP 서버 — 위 모듈을 툴로 노출하는 얇은 래퍼 |
 | `test_client.py` | stdio 프로토콜 레벨 서버 검증 |
 | `verify_config.py` | 클라이언트 설정 파일(.mcp.json / config.toml) 검증 |
@@ -32,6 +33,8 @@ Claude Code / Codex CLI 양쪽에 연결해서 쓴다.
 | `get_schedule(week)` | 정규화된 업무 목록 전체 (근거 확인용) |
 | `summarize_week(week)` | 집계 — 보고서 수치의 유일한 출처 |
 | `trace_task(keyword)` | 주차를 넘나드는 업무 추적 |
+| `build_report(week, summary)` | Markdown 보고서 파일 생성 |
+| `preview_report(week, summary)` | 저장 없이 보고서 문자열 반환 |
 
 ## 입력 데이터 형식
 
@@ -68,6 +71,11 @@ python schedule_reader.py W31 --json   # JSON
 
 # 서버 자기점검
 python weekly_report_server.py --check
+
+# 보고서 생성 (reports/YYYY-Www.md)
+python report_builder.py W31
+python report_builder.py --all
+python report_builder.py W31 --stdout
 
 # 검증
 python test_client.py      # 서버 (stdio 프로토콜)
@@ -122,11 +130,17 @@ Windows에서는 한글 깨짐 방지로 `PYTHONUTF8`을 지정한다.
 - [x] Phase 1 — 리더/정규화 모듈
 - [x] Phase 2 — MCP 서버화
 - [x] Phase 3 — 클라이언트 연결
-- [ ] Phase 4 — 리포트 파일 생성 (`build_report`)
+- [x] Phase 4 — 리포트 파일 생성 (Markdown)
 - [ ] Phase 5 — 보고서 골격 프롬프트 고정
 - [ ] Phase 6 — 최종 교차 검증
 
 상세 계획과 검증 기록은 `PROJECT_PLAN.md` 참고.
+
+## 완료율 지표
+
+`completion_rate`(전체 건수 기준)와 `completion_rate_due`(주내 마감 건 기준)를
+모두 반환한다. **보고서는 후자를 쓴다.** 마감일이 아직 오지 않은 업무를 미완료로
+세면 완료율이 부당하게 낮아지고, 주차 간 추세가 반대로 읽힌다.
 
 ## 알려진 제약
 

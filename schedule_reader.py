@@ -214,14 +214,25 @@ def summarize(week: str, path: str | None = None) -> dict:
     done = counts[STATUS_DONE]
 
     delayed = [t for t in w.tasks if t.status == STATUS_DELAYED]
+    on_hold = [t for t in w.tasks if t.status == STATUS_HOLD]
     carryover = [t for t in w.tasks if t.is_carryover and t.status != STATUS_DONE]
+
+    # 주내 마감 건만 놓고 본 완료율. 마감일이 아직 오지 않은 업무를 미완료로 세면
+    # 완료율이 부당하게 낮아지므로, 보고서에는 이 지표를 쓴다.
+    due = [t for t in w.tasks if t.end and t.end <= w.end]
+    due_done = [t for t in due if t.status == STATUS_DONE]
 
     return {
         "week": w.name,
         "period": {"start": w.start.isoformat(), "end": w.end.isoformat()},
         "total": total,
         "status_counts": counts,
+        # 전체 건수 기준. 마감일이 차주 이후인 업무까지 분모에 넣으므로
+        # 보고용으로는 completion_rate_due를 쓸 것.
         "completion_rate": round(done / total * 100, 1) if total else 0.0,
+        "due_in_week": len(due),
+        "done_in_week": len(due_done),
+        "completion_rate_due": round(len(due_done) / len(due) * 100, 1) if due else 0.0,
         "delayed": [
             {
                 "name": t.name,
@@ -231,6 +242,14 @@ def summarize(week: str, path: str | None = None) -> dict:
                 "reason": t.note,
             }
             for t in delayed
+        ],
+        "on_hold": [
+            {
+                "name": t.name,
+                "end": t.end.isoformat() if t.end else None,
+                "reason": t.note,
+            }
+            for t in on_hold
         ],
         "carryover": [
             {
@@ -254,8 +273,9 @@ def summarize(week: str, path: str | None = None) -> dict:
 def _print_summary(s: dict) -> None:
     print(f"[{s['week']}] {s['period']['start']} ~ {s['period']['end']}  총 {s['total']}건")
     counts = ", ".join(f"{k} {v}" for k, v in s["status_counts"].items() if v)
-    print(f"  상태: {counts}  (완료율 {s['completion_rate']}%)")
-    print(f"  신규 착수: {len(s['new_tasks'])}건")
+    print(f"  상태: {counts}")
+    print(f"  완료율: 주내 마감 {s['done_in_week']}/{s['due_in_week']}건 "
+          f"= {s['completion_rate_due']}%  (전체 기준 {s['completion_rate']}%)")
     if s["delayed"]:
         print(f"  지연 {len(s['delayed'])}건:")
         for d in s["delayed"]:

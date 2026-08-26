@@ -20,6 +20,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 # 클라이언트가 임의의 작업 디렉토리에서 서버를 실행하므로 경로를 직접 고정한다.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+import report_builder as rb  # noqa: E402
 import schedule_reader as sr  # noqa: E402
 
 
@@ -128,6 +129,40 @@ def trace_task(keyword: str) -> dict:
                     }
                 )
     return {"keyword": keyword, "match_count": len(matches), "matches": matches}
+
+
+@mcp.tool()
+def build_report(week: str, summary: str = "") -> dict:
+    """주차 보고서를 Markdown 파일로 생성하고 저장 경로를 반환한다.
+
+    지표·완료·진행·지연·이월 섹션은 집계 결과로 자동 채워진다.
+    '요약' 섹션만 모델이 작성해 summary로 넘긴다.
+
+    권장 순서: summarize_week로 집계를 먼저 확인하고, 그 수치를 근거로
+    요약 3~4문장을 작성한 뒤 이 툴을 호출한다. summary를 비우면
+    자리표시자가 들어간 초안이 생성된다.
+
+    Args:
+        week: 주차 시트명. 예) "W31"
+        summary: 요약 섹션에 넣을 문장. 집계 수치와 어긋나지 않게 쓸 것.
+
+    Returns:
+        path(저장 경로), week, format, bytes, summary_included.
+    """
+    return _guard(rb.build, week, summary or None)
+
+
+@mcp.tool()
+def preview_report(week: str, summary: str = "") -> str:
+    """보고서 Markdown을 파일로 저장하지 않고 문자열로 반환한다.
+
+    저장 전에 내용을 확인하거나, 대화창에 보고서를 바로 보여줄 때 사용한다.
+
+    Args:
+        week: 주차 시트명. 예) "W31"
+        summary: 요약 섹션에 넣을 문장.
+    """
+    return _guard(rb.render, week, summary or None)
 
 
 def _check() -> int:
