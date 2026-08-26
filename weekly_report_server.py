@@ -142,14 +142,34 @@ def build_report(week: str, summary: str = "") -> dict:
     요약 3~4문장을 작성한 뒤 이 툴을 호출한다. summary를 비우면
     자리표시자가 들어간 초안이 생성된다.
 
+    요약에 집계와 무관한 숫자가 있으면 저장을 거부하고, 사용 가능한 값의
+    출처를 알려준다. 그 경우 숫자를 집계 결과의 값으로 고쳐 다시 호출한다.
+
     Args:
         week: 주차 시트명. 예) "W31"
-        summary: 요약 섹션에 넣을 문장. 집계 수치와 어긋나지 않게 쓸 것.
+        summary: 요약 섹션에 넣을 문장. 숫자는 summarize_week 결과에서만 가져올 것.
 
     Returns:
-        path(저장 경로), week, format, bytes, summary_included.
+        path(저장 경로), week, format, bytes, summary_included,
+        summary_numbers_verified(요약에 쓰인 숫자와 그 출처).
     """
     return _guard(rb.build, week, summary or None)
+
+
+@mcp.tool()
+def check_summary(week: str, summary: str) -> dict:
+    """요약 문장의 숫자가 집계와 일치하는지 저장 없이 미리 검사한다.
+
+    build_report가 거부할지 먼저 확인하거나, 거부 사유를 좁힐 때 사용한다.
+
+    Args:
+        week: 주차 시트명. 예) "W31"
+        summary: 검사할 요약 문장.
+
+    Returns:
+        ok(불일치 없음), unknown(집계에 없는 숫자), verified(숫자와 출처).
+    """
+    return _guard(rb.check_summary, week, summary)
 
 
 @mcp.tool()

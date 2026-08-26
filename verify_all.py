@@ -40,7 +40,7 @@ EXPECT = {
         "W33": ("2026-08-10", 10, 6, 4, 66.7, 50.0, 3),
     },
     "tools": ["list_weeks", "get_schedule", "summarize_week", "trace_task",
-              "build_report", "preview_report"],
+              "build_report", "preview_report", "check_summary"],
 }
 
 results: list[tuple[str, str, bool, str]] = []
@@ -218,7 +218,8 @@ async def check_protocol() -> None:
             # 모든 툴에 docstring이 있는지 (모델이 툴을 고르는 근거)
             nodoc = [t.name for t in tools.tools
                      if not (t.description or "").strip()]
-            check(g, "툴 설명 존재", not nodoc, "; ".join(nodoc) or "6개 모두 보유")
+            check(g, "툴 설명 존재", not nodoc,
+                  "; ".join(nodoc) or f"{len(tools.tools)}개 모두 보유")
 
             r = await s.call_tool("summarize_week", {"week": "W31"})
             d = json.loads(txt(r))
@@ -298,10 +299,75 @@ def check_configs() -> None:
 
 # --- 실행 ------------------------------------------------------------------
 
+def check_summary_guard() -> None:
+    """요약 숫자 검증 - '숫자는 코드가 만든다'를 요약 문장에도 적용한다."""
+    g = "6. 요약 검증"
+    s31 = sr.summarize("W31")
+    s32 = sr.summarize("W32")
+
+    def rejected(week: str, summary: str) -> tuple[bool, str]:
+        try:
+            rb.build(week, summary)
+            return False, "저장됨(거부 실패)"
+        except ValueError as e:
+            return True, str(e)[:60]
+
+    ok, msg = rejected("W31", "금주 마감 20건 중 19건 완료(95.0%)로 초과 달성했다.")
+    check(g, "집계에 없는 숫자 거부", ok, msg)
+
+    # 전체 건수 기준 완료율은 보고 규칙 위반이므로 거부되어야 한다.
+    ok, msg = rejected("W31", f"금주 완료율 {s31['completion_rate']}%.")
+    check(g, "왜곡 지표(completion_rate) 거부", ok, msg)
+
+    good = (f"금주 마감 {s31['due_in_week']}건 중 {s31['done_in_week']}건 완료"
+            f"({s31['completion_rate_due']}%). "
+            f"지연 {len(s31['delayed'])}건은 차주로 이월된다.")
+    try:
+        r = rb.build("W31", good)
+        check(g, "정상 요약 통과", True,
+              f"검증 {len(r['summary_numbers_verified'])}개 숫자")
+        check(g, "숫자 출처 반환",
+              r["summary_numbers_verified"].get(str(s31["completion_rate_due"]))
+              == "완료율(주내 마감 기준)",
+              str(r["summary_numbers_verified"]))
+    except ValueError as e:
+        check(g, "정상 요약 통과", False, str(e)[:80])
+
+    # 커맨드가 지시하는 직전 주 비교 문장이 통과해야 한다.
+    delta = round(abs(s32["completion_rate_due"] - s31["completion_rate_due"]), 1)
+    trend = (f"금주 마감 {s32['due_in_week']}건 중 {s32['done_in_week']}건 완료"
+             f"({s32['completion_rate_due']}%)로 직전 주 "
+             f"{s31['completion_rate_due']}%에서 {delta}%p 하락했다.")
+    try:
+        rb.build("W32", trend)
+        check(g, "직전 주 값·증감폭 허용", True, f"{delta}%p")
+    except ValueError as e:
+        check(g, "직전 주 값·증감폭 허용", False, str(e)[:80])
+
+    # "3주 연속" 같은 주차 수 표현
+    try:
+        rb.build("W33", "완료율이 3주 연속 하락했다.")
+        check(g, "주차 수 표현 허용", True, "'3주 연속'")
+    except ValueError as e:
+        check(g, "주차 수 표현 허용", False, str(e)[:80])
+
+    # 우회 경로가 살아있는지 (수동 판단이 필요한 경우용)
+    try:
+        rb.build("W31", "마감 99건.", strict=False)
+        check(g, "strict=False 우회", True, "저장됨")
+    except ValueError:
+        check(g, "strict=False 우회", False, "우회 불가")
+
+    # 요약 없으면 검증을 건너뛰어야 한다 (초안 생성 경로)
+    c = rb.check_summary("W31", "")
+    check(g, "빈 요약은 검증 생략", c["ok"] and not c["unknown"], str(c["unknown"]))
+
+
 async def main() -> int:
     check_data()
     check_metrics()
     check_report()
+    check_summary_guard()
     await check_protocol()
     check_configs()
 

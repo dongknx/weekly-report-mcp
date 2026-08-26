@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 
 import schedule_reader as sr
@@ -26,6 +27,84 @@ SUMMARY_PLACEHOLDER = (
 def _md(d: str | None) -> str:
     """2026-07-31 -> 07/31 (본문 가독성용. 연도는 제목에 이미 있다)"""
     return f"{d[5:7]}/{d[8:10]}" if d else "-"
+
+
+_NUM_RE = re.compile(r"\d+(?:\.\d+)?")
+
+
+def _prior_week(week: str, path: str | None = None) -> str | None:
+    """시트 순서상 직전 주차. 첫 주차면 None."""
+    names = list(sr.load_weeks(path))
+    key = week.strip().upper()
+    i = names.index(key) if key in names else 0
+    return names[i - 1] if i > 0 else None
+
+
+def allowed_numbers(week: str, path: str | None = None) -> dict[float, str]:
+    """요약에 등장해도 되는 숫자와 그 출처.
+
+    집계에서 유도되는 값만 허용한다. 전체 건수 기준 completion_rate는
+    **의도적으로 제외**했다 - 요약에 그 값을 쓰는 것 자체가 규칙 위반이므로
+    검증에서 걸리는 게 옳다.
+    """
+    s = sr.summarize(week, path)
+    w = sr.get_week(week, path)
+    ok: dict[float, str] = {}
+
+    def add(v, src: str) -> None:
+        if v is None:
+            return
+        ok.setdefault(float(v), src)
+
+    add(s["total"], "전체 등록 건수")
+    add(s["due_in_week"], "금주 마감 건수")
+    add(s["done_in_week"], "금주 완료 건수")
+    add(s["completion_rate_due"], "완료율(주내 마감 기준)")
+    add(len(s["delayed"]), "지연 건수")
+    add(len(s["on_hold"]), "보류 건수")
+    add(len(s["carryover"]), "차주 이월 건수")
+    add(len(s["new_tasks"]), "신규 착수 건수")
+    for k, v in s["status_counts"].items():
+        add(v, f"상태 '{k}' 건수")
+    for d in s["delayed"]:
+        add(d["overdue_days"], f"'{d['name']}' 마감 초과일")
+
+    add(w.iso_week, "주차 번호")
+    add(w.iso_year, "연도")
+    for d in (w.start, w.end):
+        add(d.month, "주 기간 월")
+        add(d.day, "주 기간 일")
+
+    # 커맨드가 직전 주차 비교를 지시하므로 그 값과 증감폭도 허용한다.
+    prev = _prior_week(week, path)
+    if prev:
+        ps = sr.summarize(prev, path)
+        add(ps["completion_rate_due"], f"직전 주({prev}) 완료율")
+        add(round(abs(s["completion_rate_due"] - ps["completion_rate_due"]), 1),
+            "직전 주 대비 증감폭(%p)")
+
+    # "3주 연속 하락" 처럼 주차 수를 세는 표현을 허용한다.
+    for n in range(1, len(sr.load_weeks(path)) + 1):
+        add(n, "주차 수")
+
+    return ok
+
+
+def check_summary(week: str, summary: str,
+                  path: str | None = None) -> dict:
+    """요약에 집계와 무관한 숫자가 있는지 검사한다.
+
+    Returns:
+        ok(불일치 없음), unknown(집계에 없는 숫자 목록), verified(확인된 숫자와 출처).
+    """
+    if not summary or not summary.strip():
+        return {"ok": True, "unknown": [], "verified": {}}
+
+    ok_nums = allowed_numbers(week, path)
+    found = [float(m) for m in _NUM_RE.findall(summary)]
+    unknown = sorted({n for n in found if n not in ok_nums})
+    verified = {n: ok_nums[n] for n in found if n in ok_nums}
+    return {"ok": not unknown, "unknown": unknown, "verified": verified}
 
 
 def render(week: str, summary: str | None = None, path: str | None = None) -> str:
@@ -124,9 +203,25 @@ def render(week: str, summary: str | None = None, path: str | None = None) -> st
 
 
 def build(week: str, summary: str | None = None, out_dir: str | None = None,
-          path: str | None = None) -> dict:
-    """보고서를 파일로 저장하고 경로와 요약 정보를 반환한다."""
+          path: str | None = None, strict: bool = True) -> dict:
+    """보고서를 파일로 저장하고 경로와 요약 정보를 반환한다.
+
+    strict=True(기본)면 요약에 집계와 무관한 숫자가 있을 때 저장을 거부한다.
+    "숫자는 코드가 만든다"는 원칙을 요약 문장에도 적용하기 위한 것이다.
+    """
     w = sr.get_week(week, path)
+
+    chk = check_summary(week, summary or "", path)
+    if strict and not chk["ok"]:
+        nums = ", ".join(f"{n:g}" for n in chk["unknown"])
+        srcs = sorted({v for v in allowed_numbers(week, path).values()})
+        raise ValueError(
+            f"요약의 숫자 {nums} 가 {w.name} 집계에 없다. "
+            f"숫자는 summarize_week 결과에서만 가져올 것. "
+            f"사용 가능한 값의 출처: {', '.join(srcs)}. "
+            f"전체 건수 기준 completion_rate 는 보고에 쓰지 않는다."
+        )
+
     text = render(week, summary, path)
 
     target_dir = out_dir or os.environ.get("REPORT_DIR") or DEFAULT_OUT_DIR
@@ -142,6 +237,9 @@ def build(week: str, summary: str | None = None, out_dir: str | None = None,
         "format": "md",
         "bytes": len(text.encode("utf-8")),
         "summary_included": bool(summary and summary.strip()),
+        # 요약에 쓰인 숫자와 그 출처. 검증을 통과했다는 근거로 함께 반환한다.
+        "summary_numbers_verified": {f"{k:g}": v
+                                     for k, v in chk["verified"].items()},
     }
 
 
